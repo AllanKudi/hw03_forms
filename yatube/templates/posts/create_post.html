@@ -30,7 +30,6 @@
                 </div>
               {% endfor %}
             {% endif %}
-            {% if post.pk %}
             <form method="post"
             {% if is_edit %}
               action="{% url 'posts:post_edit' post.pk %}"
@@ -38,7 +37,6 @@
               action="{% url 'posts:post_create' %}"
             {% endif %}
             >
-            {% endif %}
             {% csrf_token %}
             {% for field in form %}          
               <div class="form-group row my-3 p-3">

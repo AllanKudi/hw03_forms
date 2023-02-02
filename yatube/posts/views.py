@@ -8,11 +8,15 @@ from .models import Post, Group, User
 LIMIT_POSTS_ON_THE_PAGE: int = 10
 
 
-def index(request):
-    post_list = Post.objects.all()
+def paginate(post_list, request):
     paginator = Paginator(post_list, LIMIT_POSTS_ON_THE_PAGE)
     page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    return paginator.get_page(page_number)
+
+
+def index(request):
+    post_list = Post.objects.all()
+    page_obj = paginate(post_list, request)
     context = {
         'page_obj': page_obj,
     }
@@ -22,9 +26,7 @@ def index(request):
 def group_list(request, slug):
     group = get_object_or_404(Group, slug=slug)
     post_list = group.posts.all()
-    paginator = Paginator(post_list, LIMIT_POSTS_ON_THE_PAGE)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    page_obj = paginate(post_list, request)
     context = {
         'group': group,
         'page_obj': page_obj,
@@ -33,14 +35,12 @@ def group_list(request, slug):
 
 
 def profile(request, username):
-    username = get_object_or_404(User, username=username)
-    post_list = Post.objects.filter(author=username).order_by('-pub_date')
-    paginator = Paginator(post_list, LIMIT_POSTS_ON_THE_PAGE)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    posts_count = Post.objects.filter(author=username).count
+    user_name = get_object_or_404(User, username=username)
+    post_list = Post.objects.filter(author=user_name).order_by('-pub_date')
+    page_obj = paginate(post_list, request)
+    posts_count = Post.objects.filter(author=user_name).count()
     context = {
-        'username': username,
+        'user_name': user_name,
         'page_obj': page_obj,
         'posts_count': posts_count,
     }
@@ -49,8 +49,7 @@ def profile(request, username):
 
 def post_detail(request, post_id):
     post = get_object_or_404(Post, pk=post_id)
-    post_list = Post.objects.filter(author=post.author)
-    posts_count = post_list.count
+    posts_count = post.author.posts.count()
     context = {
         'post': post,
         'posts_count': posts_count,
@@ -63,12 +62,11 @@ def post_create(request):
     form = PostForm(request.POST or None)
     if not request.method == 'POST':
         return render(request, 'posts/create_post.html', {'form': form})
+    post = form.save(commit=False)
     if not form.is_valid():
         return render(request, 'posts/create_post.html', {'form': form})
-
-    post = form.save(commit=False)
     post.author = request.user
-    post.save()
+    form.save()
     return redirect('posts:profile', post.author)
 
 
@@ -86,6 +84,5 @@ def post_edit(request, post_id):
             'post': post,
         }
         return render(request, 'posts/create_post.html', context)
-
     post.save()
     return redirect('posts:post_detail', post.pk)

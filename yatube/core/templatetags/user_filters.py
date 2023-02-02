@@ -10,8 +10,4 @@ def addclass(field, css):
 
 @register.filter
 def text_cut(text):
-    text_cut = ''
-    for i in range(len(text)):
-        text_cut += text[i]
-        if i == 30:
-            return text_cut
+    return text[:30]
